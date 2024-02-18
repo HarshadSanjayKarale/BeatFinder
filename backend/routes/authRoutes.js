@@ -1,54 +1,59 @@
-// routes/authRoutes.js
-
 const express = require('express');
-const router = express.Router();
-const firebaseAdmin = require('firebase-admin');
-const db = require('../db/firestore');
-const signUpSchema = require('../schema/signUpSchema');
-const loginSchema = require('../schema/loginSchema');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../schemas/user');
 
+const router = express.Router();
+
+// Signup route
 router.post('/signup', async (req, res) => {
   try {
-    const { email, password } = signUpSchema.parse(req.body);
+    const { username, email, password } = req.body;
 
     // Check if user already exists
-    const userExists = await firebaseAdmin.auth().getUserByEmail(email);
-    if (userExists) {
-      return res.status(400).json({ error: 'User already exists' });
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create user
-    const userRecord = await firebaseAdmin.auth().createUser({
-      email,
-      password
-    });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Store user data in Firestore
-    await db.collection('users').doc(userRecord.uid).set({
-      email
-    });
+    // Create new user
+    user = new User({ username, email, password: hashedPassword });
+    await user.save();
 
-    return res.status(201).json({ message: 'User created successfully' });
+    res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
-    console.error('Error signing up user:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
+// Login route
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    const { email, password } = req.body;
 
-    // Authenticate user
-    const userCredential = await firebaseAdmin.auth().signInWithEmailAndPassword(email, password);
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
-    // Get user ID token
-    const idToken = await userCredential.user.getIdToken();
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
-    return res.status(200).json({ message: 'Login successful', token: idToken });
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, 'your_secret_key', { expiresIn: '1h' });
+
+    res.status(200).json({ token });
   } catch (error) {
-    console.error('Error logging in user:', error);
-    return res.status(400).json({ error: 'Invalid credentials' });
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
