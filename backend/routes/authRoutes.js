@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { signupSchema, loginSchema } = require('../validationSchemas');
 const User = require('../schemas/user');
 
 const router = express.Router();
@@ -8,7 +9,8 @@ const router = express.Router();
 // Signup route
 router.post('/signup', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    // Validate request body
+    const { username, email, password } = signupSchema.parse(req.body);
 
     // Check if user already exists
     let user = await User.findOne({ email });
@@ -26,14 +28,15 @@ router.post('/signup', async (req, res) => {
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(400).json({ message: error.errors });
   }
 });
 
 // Login route
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // Validate request body
+    const { email, password } = loginSchema.parse(req.body);
 
     // Check if user exists
     const user = await User.findOne({ email });
@@ -53,7 +56,7 @@ router.post('/login', async (req, res) => {
     res.status(200).json({ token });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(400).json({ message: error.errors });
   }
 });
 
