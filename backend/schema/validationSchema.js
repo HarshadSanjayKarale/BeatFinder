@@ -1,16 +1,16 @@
-const { object, string, email } = require('zod');
+const zod = require("zod");
 
 // Signup schema
-const signupSchema = object({
-  username: string().min(3).max(50),
-  email: email(),
-  password: string().min(6),
+const signupSchema = zod.object({
+  username: zod.string().min(3).max(50),
+  email: zod.string().email(),
+  password: zod.string().min(6),
 });
 
 // Login schema
-const loginSchema = object({
-  email: email(),
-  password: string().min(6),
+const loginSchema = zod.object({
+  email: zod.string().email(),
+  password: zod.string().min(6),
 });
 
 module.exports = { signupSchema, loginSchema };

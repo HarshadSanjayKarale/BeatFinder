@@ -1,8 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { signupSchema, loginSchema } = require('../validationSchemas');
-const User = require('../schemas/user');
+const { signupSchema, loginSchema } = require('../schema/validationSchema');
+const User = require('../schema/user');
 
 const router = express.Router();
 
